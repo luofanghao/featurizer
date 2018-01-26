@@ -1,6 +1,6 @@
 D3M_API_VERSION = '2018.1.26'
 VERSION = "0.0.1"
-TAG_NAME = "57f164104774c4483deff974298d0f4ede8c4527"
+TAG_NAME = "e1af360bbf520dcfa5a9569afc1401f27f367b04"
 
 REPOSITORY = "https://github.com/luofanghao/featurizer"
 PACAKGE_NAME = "dsbox-featurizer"

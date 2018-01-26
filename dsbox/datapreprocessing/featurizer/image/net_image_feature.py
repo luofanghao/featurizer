@@ -1,4 +1,6 @@
 """ Feature generation based on deep learning for images
+    wrapped into d3m format
+    TODO: update primitive info
 """
 from primitive_interfaces.featurization import FeaturizationTransformerPrimitiveBase
 from primitive_interfaces.base import CallResult
@@ -13,6 +15,8 @@ from keras.models import Model
 import keras.applications.resnet50 as resnet50
 import keras.applications.vgg16 as vgg16
 
+from . import config
+import typing
 #from dsbox.planner.levelone import Primitive
 
 import numpy as np
@@ -21,17 +25,24 @@ Inputs = ndarray  # image tensor, has 4 dimensions
 Outputs = ndarray # extracted features
 
 
+class Hyperparams(hyperparams.Hyperparams):
+    """
+    No hyper-parameters for this primitive.
+    """
+
+    pass
+
 class ResNet50ImageFeature(FeaturizationTransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
     """
     Image Feature Generation using pretrained deep neural network RestNet50.
 
     Parameters
     ----------
-    layer_index : int, default: 0, domain: range(11)
+    _layer_index : int, default: 0, domain: range(11)
         Layer of the network to use to generate features. Smaller
         indices are closer to the output layers of the network.
 
-    resize_data : Boolean, default: True, domain: {True, False}
+    _resize_data : Boolean, default: True, domain: {True, False}
         If True resize images to 224 by 224.
     """
 
@@ -59,12 +70,10 @@ class ResNet50ImageFeature(FeaturizationTransformerPrimitiveBase[Inputs, Outputs
         'hyperparms_to_tune': []
     })
 
-    RESNET50_MODEL = None
+    
 
     def __init__(self, *, hyperparams: Hyperparams, random_seed: int = 0, 
              docker_containers: typing.Union[typing.Dict[str, str], None] = None) -> None:
-
-
         # All primitives must define these attributes
         self.hyperparams = hyperparams
         self.random_seed = random_seed
@@ -78,19 +87,20 @@ class ResNet50ImageFeature(FeaturizationTransformerPrimitiveBase[Inputs, Outputs
         self._layer_index = 0
         self._preprocess_data=True
         self._resize_data=False
+        self._RESNET50_MODEL = None
         #===========================================================
 
-        if ResNet50ImageFeature.RESNET50_MODEL is None:
-            ResNet50ImageFeature.RESNET50_MODEL = resnet50.ResNet50(weights='imagenet')
+        if self._RESNET50_MODEL is None:
+            self._RESNET50_MODEL = resnet50.ResNet50(weights='imagenet')
         self._layer_numbers = [-2, -4, -8, -11, -14, -18, -21, -24, -30, -33, -36]
-        if _layer_index < 0:
-            _layer_index = 0
-        elif _layer_index > len(self._layer_numbers):
+        if self._layer_index < 0:
+            self._layer_index = 0
+        elif self._layer_index > len(self._layer_numbers):
             self._layer_numbers = len(self._layer_numbers)-1
 
         self._layer_number = self._layer_numbers[self._layer_index]
 
-        self._org_model = ResNet50ImageFeature.RESNET50_MODEL
+        self._org_model = self._RESNET50_MODEL
         self._model = Model(self._org_model.input,
                            self._org_model.layers[self._layer_number].output)
 
@@ -147,7 +157,7 @@ class ResNet50ImageFeature(FeaturizationTransformerPrimitiveBase[Inputs, Outputs
         return self._annotation
 '''
 
-class Vgg16ImageFeature(BaseEstimator, TransformerMixin):
+class Vgg16ImageFeature(FeaturizationTransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
     """
     Image Feature Generation using pretrained deep neural network VGG16.
 
@@ -184,7 +194,6 @@ class Vgg16ImageFeature(BaseEstimator, TransformerMixin):
         'hyperparms_to_tune': []
     })
 
-    VGG16_MODEL = None
 
     def __init__(self, *, hyperparams: Hyperparams, random_seed: int = 0, 
              docker_containers: typing.Union[typing.Dict[str, str], None] = None) -> None:
@@ -199,25 +208,22 @@ class Vgg16ImageFeature(BaseEstimator, TransformerMixin):
 
         #============TODO: these three could be hyperparams=========
         self._layer_index = 0
-        self._preprocess_data=True
-        self._resize_data=False
+        self._preprocess_data= True
+        self._resize_data = False
+        self._VGG16_MODEL = None
         #===========================================================
 
-        if Vgg16ImageFeature.VGG16_MODEL is None:
-            Vgg16ImageFeature.VGG16_MODEL = vgg16.VGG16(weights='imagenet', include_top=False)
+        if self._VGG16_MODEL is None:
+            self._VGG16_MODEL = vgg16.VGG16(weights='imagenet', include_top=False)
         self._layer_numbers = [-1, -5, -9, -13, -16]
-        if layer_index < 0:
-            layer_index = 0
-        elif layer_index > len(self._layer_numbers):
+        if self._layer_index < 0:
+            self._layer_index = 0
+        elif self._layer_index > len(self._layer_numbers):
             self._layer_index = len(self._layer_numbers)-1
 
-        self._layer_index = layer_index
         self._layer_number = self._layer_numbers[self._layer_index]
-        self._preprocess_data = preprocess_data
 
-        self._resize_data = resize_data
-
-        self._org_model = self.VGG16_MODEL
+        self._org_model = self._VGG16_MODEL
         self._model = Model(self._org_model.input,
                            self._org_model.layers[self._layer_number].output)
         self._annotation = None
